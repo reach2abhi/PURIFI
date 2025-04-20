@@ -5,27 +5,24 @@ This repository contains an **R Shiny** application for **genetic purity** analy
 # SNP-Based QA/QC Pipeline Shiny App
 
 ---
+# PURIFI: SNP-Based QA/QC Pipeline Shiny App
+
+This repository contains a single-file **R Shiny** application (`app.R`) called **PURIFI**, designed for **genetic purity** analysis and **F1 pedigree verification** using SNP marker data, tailored for dryland crop breeding programs.
+
+---
 
 ## 📁 Repository Structure
 
 ```text
-├── app.R                 # Main Shiny application (ui + server)
-├── functions/            # Modular R scripts with core functions
-│   ├── read_data.R
-│   ├── grid_preparation.R
-│   ├── snp_summary.R
-│   ├── parent_consensus.R
-│   ├── purity_calculation.R
-│   ├── f1_verification.R
-│   ├── hapmap_export.R
-├── www/                  # Static assets (example data, images, CSS)
-│   ├── meta.txt          # Example metadata
-│   ├── geno.csv          # Example genotype file
-│   ├── logoW.png
-│   └── img*.png
-├── README.md             # Project documentation (this file)
-├── LICENSE
-└── .gitignore
+├── app.R             # Main Shiny application (UI and server logic)
+├── www/              # Static assets (example data, images, CSS)
+│   ├── meta.txt      # Example sample metadata
+│   ├── geno.csv      # Example genotype data
+│   ├── logoW.png     # Logo image
+│   └── img1.png, img2.png, img3.png  # Panel icons
+├── README.md         # Project documentation (this file)
+├── LICENSE           # MIT License
+└── .gitignore        # Files and folders to ignore in Git
 ```
 
 ---
@@ -33,19 +30,17 @@ This repository contains an **R Shiny** application for **genetic purity** analy
 ## 🚀 Getting Started
 
 ### Prerequisites
-
 - R (>= 4.0)
 - RStudio (optional but recommended)
-- Internet connection to install packages
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repository**:
    ```bash
-   git clone https://github.com/YourOrg/snp-qaqc-pipeline.git
-   cd snp-qaqc-pipeline
+   git clone https://github.com/reach2abhi/PURIFI.git
+   cd PURIFI
    ```
-2. **Install required R packages**
+2. **Install required R packages**:
    ```r
    install.packages(c(
      "shiny", "shinythemes", "shinyjs", 
@@ -53,7 +48,7 @@ This repository contains an **R Shiny** application for **genetic purity** analy
      "plotly", "webshot", "shinycssloaders"
    ))
    ```
-3. **Launch the Shiny App**
+3. **Launch the Shiny App**:
    ```r
    library(shiny)
    runApp("app.R")
@@ -64,67 +59,65 @@ This repository contains an **R Shiny** application for **genetic purity** analy
 ## 🖥️ Application Workflow
 
 1. **Data Upload**
-
-   - Upload sample metadata (.txt) and SNP genotype data (.csv) via the UI.
-   - Optionally load example datasets from `www/`.
+   - Upload sample metadata (.txt) and SNP genotype data (.csv) through the UI.
+   - Load provided example files from the `www/` folder.
 
 2. **Marker Visualization & Summary**
-
-   - Interactive SNP cluster plots (X vs Y) to assess call quality.
-   - Summary table with missing call rates, allele frequencies, PIC, etc.
+   - Interactive SNP cluster plots (X vs Y) to evaluate call quality.
+   - Summary table of each marker’s missing data rate, allele frequencies, heterozygosity, and PIC.
 
 3. **Parent Consensus & QC**
-
-   - Build consensus genotypes for parent lines.
-   - Calculate purity scores and visualize parent sample consistency.
-   - Adjustable purity threshold slider.
+   - Generate consensus genotypes across parent replicates.
+   - Compute parent purity scores with a customizable threshold slider.
+   - Visual heatmap of parent sample consistency.
 
 4. **F1 Verification**
-
-   - Compare F1 genotypes against parent consensus.
-   - Calculate heterozygosity percentage and classify F1 crosses.
+   - Compare F1 hybrid genotypes to parent consensus.
+   - Calculate percentage heterozygosity and classify crosses as:
+     - **Successful F1** (100% heterozygous)
+     - **Possible F1** (≥ threshold and <100%)
+     - **Parent Quality Failed** (purity score below threshold)
+     - **Failed F1** (heterozygosity below threshold)
    - Customizable heterozygosity threshold slider.
 
 5. **HAPMAP Export**
-
-   - Clean genotype data exported in HAPMAP format for downstream tools.
-
----
-
-## 🔍 Key Functions (in `functions/`)
-
-| File                   | Function(s)                                        |
-| ---------------------- | -------------------------------------------------- |
-| `read_data.R`          | `read_datasets()`                                  |
-| `grid_preparation.R`   | `create_grid_file()`                               |
-| `snp_summary.R`        | `calculate_snp_info()`, `compute_sample_summary()` |
-| `parent_consensus.R`   | `create_parents_consensus()`                       |
-| `purity_calculation.R` | `parental_purity()`, `create_purity_report()`      |
-| `f1_verification.R`    | `find_homo_poly_snps()`, `create_f1_report()`      |
-| `hapmap_export.R`      | `create_hapmap()`                                  |
+   - Export cleaned genotype data into a HAPMAP-format file (`hapmap-<date>.hmp.txt`) for downstream analysis.
 
 ---
 
-## 🎨 Customization & Configuration
+## 🔍 Core Functions (defined in `app.R`)
 
-- **Thresholds** in the UI:
-  - Parent Purity (default: **80%**)
-  - F1 Heterozygosity (default: **60%**)
-- **Styling**: Modify CSS in `app.R` head tags for color schemes and table style.
-- **Example Data**: Located in `www/meta.txt` and `www/geno.csv`.
+| Function Name            | Purpose                                                     |
+| ------------------------ | ----------------------------------------------------------- |
+| `read_datasets()`        | Reads metadata and raw genotype files, parses SNP calls.   |
+| `create_grid_file()`     | Reshapes raw calls into a Sample×SNP matrix.               |
+| `calculate_snp_info()`   | Computes marker-level statistics (missing %, PIC, etc.).    |
+| `create_parents_consensus()` | Builds consensus genotypes for parent lines.           |
+| `parental_purity()`      | Calculates purity comparisons between samples and consensus.|
+| `create_f1_report()`     | Evaluates F1 hybrids for expected heterozygosity.          |
+| `create_hapmap()`        | Formats final data into HAPMAP standard output.            |
+
+---
+
+## 🎨 Customization & Settings
+
+- **Threshold sliders** in the UI:
+  - Parent Purity (default **80%**)
+  - F1 Heterozygosity (default **60%**)
+- **Styling/CSS** tweaks in the `<head>` section of `app.R`.
+- **Example data** in `www/` can be replaced with project-specific files.
 
 ---
 
 ## 🚧 Deployment
 
-- **Local**: `runApp("app.R")` in RStudio or R console.
-- **Shiny Server**: Place this directory under `/srv/shiny-server/snp-qaqc-pipeline`.
-- **shinyapps.io**:
-  ```bash
-  rsconnect::deployApp()
-  ```
+- **Locally**: `shiny::runApp("app.R")`.
+- **Shiny Server**: Copy this folder to `/srv/shiny-server/PURIFI/`.
+- **shinyapps.io**: Use `rsconnect::deployApp()` from within the project directory.
 
-## Contributors
+---
+
+## 👥 Contributors
 
 - **Dr. Abhishek Rathore** — Principal Scientist, Breeding Data & Informatics
 - **Mr. Peter Kimathi** — Bioinformatics & Software Developer
@@ -135,4 +128,6 @@ This repository contains an **R Shiny** application for **genetic purity** analy
 ## 📄 License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+
 
