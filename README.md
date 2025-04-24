@@ -1,6 +1,6 @@
 # PURIFI
 SNP-Based QA/QC Pipeline Shiny App
-This repository contains an **R Shiny** application for **genetic purity** analysis and **F1 pedigree verification** using SNP marker data, tailored for dryland crop breeding programs.
+This repository contains an **R Shiny** application for **genetic purity** analysis and **F1 pedigree verification** using SNP marker data, tailored for Dryland Crop Programs (DCP) of CIMMYT.
 
 # SNP-Based QA/QC Pipeline Shiny App
 
