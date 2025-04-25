@@ -12,7 +12,8 @@ require(dplyr)
 require(gt)
 #############################
 ######################################################################################################################################
-###Read metadata and intertek fle
+###Read metadata and Intertek file
+
 read_datasets <- function(file_path1, file_path2) {
   # Check if the file exists
   if (!file.exists(file_path1)) {
