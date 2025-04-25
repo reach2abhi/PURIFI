@@ -13,6 +13,7 @@ require(gt)
 #############################
 ######################################################################################################################################
 ###Read metadata and intertek fle
+#setwd(tempdir())
 read_datasets <- function(file_path1, file_path2) {
   # Check if the file exists
   if (!file.exists(file_path1)) {
@@ -89,7 +90,7 @@ create_grid_file <- function(geno_data,meta_data) {
   grid2<-grid_draft%>%rename("SAMPLE_UID"="DNA /\ Assay")
   grid_df <- merge(meta_data, grid2, by = "SAMPLE_UID")
   
-  write.csv(grid_draft, "Test2_Grid_file.csv", row.names = FALSE, quote = FALSE)
+  #write.csv(grid_draft, "Test2_Grid_file.csv", row.names = FALSE, quote = FALSE)
   return (grid_df)
 }
 #grid_df<-create_grid_file(datasets$lgc_data,datasets$metadata)
@@ -262,7 +263,7 @@ create_parents_consensus<-function(grid_df){
 parental_purity<-function(parent_consensus){
   # Group data by the 'DESIGNATION' column
   group_by_desig <- parent_consensus %>% group_by(DESIGNATION)
-  parents_purity <- file("Sample_Purity_Summary.txt", "wt")
+  parents_purity <- file(file.path(tempdir(),"Sample_Purity_Summary.txt"), "wt")
   purity_header <- c("SAMPLE_NAME", "TotalMarkers", "Match", "Mismatch", "BothMissing", "ConsensusMissing", "SampleMissing", "PurityScore")
   writeLines(paste(purity_header, collapse = ","), parents_purity)
   #Loop over each group
@@ -323,7 +324,8 @@ parental_purity<-function(parent_consensus){
   
   # Close the output file
   close(parents_purity)
-  Purity_df<- read.csv("Sample_Purity_Summary.txt")
+  Purity_df<- read.csv(file.path(tempdir(),"Sample_Purity_Summary.txt"))
+  #"Sample_Purity_Summary.txt")
   return (Purity_df)
   
 }
@@ -349,7 +351,7 @@ create_purity_report<-function(Purity_df,consensus_df){
     }
     return(x)  # Return non-list columns as is
   })
-  write.csv(consensus_report, "consensus_report_grid2.csv",row.names = FALSE, quote = FALSE)
+  write.csv(consensus_report, file.path(tempdir(),"consensus_report_grid2.csv"),row.names = FALSE, quote = FALSE)
   return(consensus_report)
   
 }
@@ -514,7 +516,7 @@ ui = fluidPage(theme = shinythemes::shinytheme("flatly"),
                      
                      column(8,
                             class = "jumbotron",
-                            h1("Dryland Crops Program QA/QC Pipeline"),
+                            h1("Dryland Crops PURIFI program"),
                             h2("This online web app is developed with the intention of empowering researchers in the use of molecular markers for QA/QC molecular based tests. Perform downstream Bioinformatics analysis for genetic purity of elite inbred/parental lines and validation of crosses using F1 pedigree verification.", 
                                class = "lead"),
                             hr(),
@@ -799,6 +801,7 @@ server = function(input, output){
   # Creating a session-specific temp folder with an "Out" subfolder
   createtempFolder <- reactive({
     tempFolder <- tempfile("")
+    #setwd(tempdir())
     dir.create(tempFolder, recursive = TRUE)
     tempFolderOut <- paste(tempFolder, "/Out/", sep = "")
     dir.create(tempFolderOut, recursive=TRUE)
@@ -810,7 +813,9 @@ server = function(input, output){
   observeEvent(list(input$file1, input$file2), {
     req(input$file1, input$file2)
     tempFolder=createtempFolder()
+    #Set working directory
     rv$tempFolder<-tempFolder
+    setwd(rv$tempFolder)
     rv$tempFolderOut <- paste(tempFolder, "/Out/", sep = "")
     rv$MetaFilePath <- tempfile("META_", tmpdir = tempFolder, fileext = ".txt")
     rv$GenoFilePath <- tempfile("Geno_", tmpdir = tempFolder, fileext = ".csv")
@@ -855,6 +860,7 @@ server = function(input, output){
     req(input$load_example_meta, input$load_example_geno)
     tempFolder=createtempFolder()
     rv$tempFolder<-tempFolder
+    #setwd(rv$tempFolder)
     rv$tempFolderOut <- paste(tempFolder, "/Out/", sep = "")
     rv$MetaFilePath <- tempfile("META_", tmpdir = tempFolder, fileext = ".txt")
     rv$GenoFilePath <- tempfile("Geno_", tmpdir = tempFolder, fileext = ".csv")
@@ -1089,15 +1095,25 @@ server = function(input, output){
 
   #print(plotdd())
   plotdd <- reactive({
-  req(input$file1, input$file2)
+  #req(input$file1, input$file2)
+  req( (!is.null(input$file1) && !is.null(input$file2)) ||(input$load_example_meta > 0 && input$load_example_geno > 0))
+
+  if(file_statuses$file1_uploaded && file_statuses$file2_uploaded) {
   tempData <- read_datasets(input$file1$datapath, input$file2$datapath)$lgc_data
+  #print(input$file1$datapath)
+  #print(input$file2$datapath)
+  }
+  if(file_statuses$example1_uploaded && file_statuses$example2_uploaded){
+  #print(rv$MetaFilePath)
+  #print(rv$GenoFilePath)
+  tempData <- read_datasets(rv$MetaFilePath,rv$GenoFilePath)$lgc_data
+  }
   tm <- tempData
   print(rv$tempFolderOut)
   write.table(tm, paste(rv$tempFolderOut, 'plot_file.csv', sep = ""), sep = ",", row.names = FALSE, col.names = TRUE, quote = FALSE)
   tempData <- read_csv(paste(rv$tempFolderOut, "plot_file.csv", sep = ""), show_col_types = FALSE)
   return(tempData)  # Return the dataframe from the reactive expression
    })
-
 
   observeEvent(input$Visualize_button, {
     shinyjs::show("processing")  # Show the processing message
@@ -1124,8 +1140,16 @@ server = function(input, output){
 
   ##########################################################
   grid_df <- reactive({
-  req(input$file1, input$file2)
-  datasets<-read_datasets(input$file1$datapath,input$file2$datapath)
+  req( (!is.null(input$file1) && !is.null(input$file2)) ||(input$load_example_meta > 0 && input$load_example_geno > 0))
+
+  if(file_statuses$file1_uploaded && file_statuses$file2_uploaded) {
+  datasets <- read_datasets(input$file1$datapath, input$file2$datapath)
+  }
+  if(file_statuses$example1_uploaded && file_statuses$example2_uploaded){
+  datasets <- read_datasets(rv$MetaFilePath,rv$GenoFilePath)
+  }
+  #req(input$file1, input$file2)
+  #datasets<-read_datasets(input$file1$datapath,input$file2$datapath)
   tmpdata<-create_grid_file(datasets$lgc_data,datasets$metadata)
   #print(tmpdata)
   return(tmpdata)  # Return the dataframe from the reactive expression
@@ -1265,8 +1289,18 @@ server = function(input, output){
 
   #Parent_consensus <- reactiveVal()
   Parent_consensus<-reactive({
-    req(input$file1, input$file2)
+    req( (!is.null(input$file1) && !is.null(input$file2)) ||(input$load_example_meta > 0 && input$load_example_geno > 0))
     req(grid_df())
+    if(file_statuses$file1_uploaded && file_statuses$file2_uploaded) {
+    datasets <- read_datasets(input$file1$datapath, input$file2$datapath)
+    }
+    if(file_statuses$example1_uploaded && file_statuses$example2_uploaded){
+    datasets <- read_datasets(rv$MetaFilePath,rv$GenoFilePath)
+    }
+
+
+    #req(input$file1, input$file2)
+    
     excluded <- read.table(paste(rv$tempFolderOut,"excluded_markers.txt", sep = ""), header = FALSE, stringsAsFactors = FALSE)
     exc_markers<-excluded[[1]]
     #grid_df() <- grid_df()[, setdiff(names(grid_df()), exc_markers)]
@@ -1293,7 +1327,7 @@ server = function(input, output){
     temp1 <- unlist_columns(temp1)
     pr_df<-unlist_columns(Purity_df)
     cn_df<-unlist_columns(consensus_df)
-    datasets<-read_datasets(input$file1$datapath,input$file2$datapath)
+    #datasets<-read_datasets(input$file1$datapath,input$file2$datapath)
     cons_report<-create_purity_report(pr_df,cn_df)
     het_threshold<-60
     purity_threshold<-80
@@ -1342,8 +1376,15 @@ server = function(input, output){
 
   })
   hapmap<-reactive({
-    req(input$file1, input$file2)
-    hapmap<-create_hapmap(read_datasets(input$file1$datapath, input$file2$datapath))
+    #req(input$file1, input$file2)
+    req( (!is.null(input$file1) && !is.null(input$file2)) ||(input$load_example_meta > 0 && input$load_example_geno > 0))
+    if(file_statuses$file1_uploaded && file_statuses$file2_uploaded) {
+    hapmap <- create_hapmap(read_datasets(input$file1$datapath, input$file2$datapath))
+    }
+    if(file_statuses$example1_uploaded && file_statuses$example2_uploaded){
+    hapmap <- create_hapmap(read_datasets(rv$MetaFilePath,rv$GenoFilePath))
+    }
+    #hapmap<-create_hapmap(read_datasets(input$file1$datapath, input$file2$datapath))
     write.table(hapmap, paste0(rv$tempFolderOut,"/hapmap.hmp.txt",sep=""), sep = "\t", row.names = FALSE,col.names = TRUE,quote = FALSE)
     })
 
@@ -1428,8 +1469,16 @@ server = function(input, output){
 
   #fs <- reactiveValues(F1SummaryData = NULL)
   fs <- reactive({
-  req(input$file1, input$file2)
+  req( (!is.null(input$file1) && !is.null(input$file2)) ||(input$load_example_meta > 0 && input$load_example_geno > 0))
   req(grid_df())
+  #if(file_statuses$file1_uploaded && file_statuses$file2_uploaded) {
+  # datasets <- read_datasets(input$file1$datapath, input$file2$datapath)
+  # }
+  #if(file_statuses$example1_uploaded && file_statuses$example2_uploaded){
+  # datasets <- read_datasets(rv$MetaFilePath,rv$GenoFilePath)
+  # }
+  #req(input$file1, input$file2)
+  #req(grid_df())
   #req(hapmap())
   req(Parent_consensus())
   req(paste(rv$tempFolderOut, "/F1_QAQC.txt", sep = ""))
